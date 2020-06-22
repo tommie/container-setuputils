@@ -26,7 +26,7 @@ ARG RUN_GID=
 # e.g. "onewithuid:1234,anotherexisting".
 ARG RUN_SUPP_GROUPS=
 
-COPY --from=tommie/container-setuptils addusergroup /sbin/addusergroup
+COPY --from=githubtommie/container-setuptils addusergroup /sbin/addusergroup
 RUN [ "$RUN_USER" = root ] || addusergroup -u "$RUN_UID" -g "$RUN_GID" -G "$RUN_SUPP_GROUPS" "$RUN_USER"
 USER $RUN_USER
 ```
