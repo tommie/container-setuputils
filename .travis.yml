@@ -1,0 +1,8 @@
+---
+language: sh
+
+services:
+  - docker
+
+script:
+  - make check-docker
