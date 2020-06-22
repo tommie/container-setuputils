@@ -1,5 +1,7 @@
 # Container Setup Utilities
 
+[![Build Status](https://travis-ci.org/tommie/container-setuputils.svg?branch=master)](https://travis-ci.org/tommie/container-setuputils)
+
 This is a small collection of utilities to initialize (Docker)
 containers.
 
