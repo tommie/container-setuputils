@@ -1,0 +1,8 @@
+ARG BASE_IMAGE=library/alpine:latest
+FROM $BASE_IMAGE
+
+WORKDIR /
+COPY . ./
+
+USER nobody
+CMD for tst in *_test; do ./$tst || exit $? ; done

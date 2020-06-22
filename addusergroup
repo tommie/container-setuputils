@@ -1,0 +1,83 @@
+#!/bin/sh
+
+set -e
+
+os () {
+    (
+        ! [ -f /etc/os-release ] || . /etc/os-release
+        echo "${ID:-unknown}"
+    )
+}
+
+main () {
+    local uid gid groups home=/ nocreatehome
+
+    eval set -- "$(getopt -o u:g:G:h:H -- "$@")"
+    while true; do
+        case "$1" in
+            -u)
+                uid=$2
+                shift
+                ;;
+            -g)
+                gid=$2
+                shift
+                ;;
+            -G)
+                groups=$2
+                shift
+                ;;
+            -h)
+                home=$2
+                shift
+                ;;
+            -H)
+                nocreatehome=1
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                echo "$0: unhandled option: $1" >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    local user=$1
+    shift
+
+    if [ $# -ne 0 ]; then
+        echo "$0: unused extra arguments: $*" >&2
+        return 1
+    fi
+
+    if id -u "$user" 2>/dev/null 1>&2; then
+        echo "$0: the user '$user' already exists." >&2
+        return 1
+    fi
+
+    case "$(os)" in
+        alpine)
+            which addgroup
+            addgroup ${gid:+-g "$gid"} "$user"
+            adduser -S ${home:+-h "$home"} ${nocreatehome:+-H} -G "$user" -D ${uid:+-u "$uid"} "$user"
+            echo -n "$groups" | tr , '\n' | sed -E -e 's;^(.+):(.+)$;addgroup -g "\2" "\1"; p ; d' | tr '\n' '\0' | xargs -0 -r -n1 "${SHELL:-sh}" -c
+            echo -n "$groups" | tr , '\n' | cut -d: -f1 | xargs -r -n1 addgroup "$user"
+            ;;
+        debian|ubuntu)
+            addgroup --system ${gid:+--gid="$gid"} "$user"
+            adduser --system ${home:+--home "$home"} ${nocreatehome:+--no-create-home} --ingroup "$user" --disabled-password --disabled-login ${uid:+--uid="$uid"} "$user"
+            echo -n "$groups" | tr , '\n' | sed -E -e 's;^(.+):(.+)$;addgroup --system --gid="\2" "\1"; p ; d' | tr '\n' '\0' | xargs -0 -r -n1 "${SHELL:-sh}" -c
+            echo -n "$groups" | tr , '\n' | cut -d: -f1 | xargs -r -n1 addgroup "$user"
+            ;;
+        *)
+            echo "$0: unknown OS" >&2
+            return 2
+            ;;
+    esac
+}
+
+main "$@"

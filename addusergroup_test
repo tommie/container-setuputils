@@ -1,0 +1,56 @@
+#!/bin/sh
+
+set -e
+
+. "$(dirname "$0")/test_fixture.sh"
+
+test_existing_causes_failure () {
+    mock_prog id <<EOF
+expect -u root
+status 0
+EOF
+
+    expect_fail 1 ./addusergroup root
+}
+
+test_existing_can_run () {
+    mock_prog id <<EOF
+expect -u auser
+status 1
+EOF
+    mock_prog addgroup <<EOF
+expect '(--system )?auser'
+status 0
+EOF
+    mock_prog adduser <<EOF
+expect '-S -h / -G auser -D auser|--system --home / --ingroup auser --disabled-password --disabled-login auser'
+status 0
+EOF
+
+    expect_success ./addusergroup auser
+}
+
+test_existing_can_run_with_options () {
+    mock_prog id <<EOF
+expect -u auser
+status 1
+EOF
+    mock_prog addgroup <<EOF
+expect '-g 456 auser|--system --gid=456 auser'
+status 0
+expect '-g 789 agroup|--system --gid=789 agroup'
+status 0
+expect auser agroup
+status 0
+expect auser bgroup
+status 0
+EOF
+    mock_prog adduser <<EOF
+expect '-S -h /tmp -H -G auser -D -u 123 auser|--system --home /tmp --no-create-home --ingroup auser --disabled-password --disabled-login --uid=123 auser'
+status 0
+EOF
+
+    expect_success ./addusergroup -u 123 -g 456 -G agroup:789,bgroup -h /tmp -H auser
+}
+
+run_tests "$@"
